@@ -1,0 +1,9 @@
+## Interface: 50400
+## Version: 5.4.7.0
+## Title: CT_BagMod
+## Notes: Allows you to rename your bags for easier storage.
+## DefaultState: Enabled
+## SavedVariables: CT_BagModOptions
+
+CT_BagMod.lua
+CT_BagMod.xml
