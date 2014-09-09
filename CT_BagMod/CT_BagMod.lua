@@ -1,11 +1,17 @@
 local _G = _G
+local pairs = pairs
 local string = string
+local type = type
 
 local ContainerIDToInventoryID = ContainerIDToInventoryID
+local GameTooltip = GameTooltip
 local GetBagName = GetBagName
 local GetBindingKey = GetBindingKey
+local PickupBagFromSlot = PickupBagFromSlot
 local PutItemInBackpack = PutItemInBackpack
+local PutItemInBag = PutItemInBag
 local ToggleBackpack = ToggleBackpack
+local ToggleBag = ToggleBag
 
 local EQUIP_CONTAINER = EQUIP_CONTAINER
 local FONT_COLOR_CODE_CLOSE = FONT_COLOR_CODE_CLOSE
@@ -23,7 +29,7 @@ local function CopySettings(src, dst)
 	end
 	for k, v in pairs(src) do
 		if type(v) == "table" then
-			dst[k] = self:CopySettings(v, dst[k])
+			dst[k] = CopySettings(v, dst[k])
 		elseif type(v) ~= type(dst[k]) then
 			dst[k] = v
 		end
@@ -35,7 +41,7 @@ CT_BagModOptions = CopySettings(defaultSettings, CT_BagModOptions)
 
 function CT_GetNextCID()
 	for i = 1, 5, 1 do
-		if not getglobal("ContainerFrame"..i):IsVisible() then
+		if not _G["ContainerFrame"..i]:IsVisible() then
 			return i
 		end
 	end
@@ -46,15 +52,15 @@ function CT_GetBagID(container)
 	if not container then
 		return nil
 	end
-	return getglobal("ContainerFrame"..container):GetID()
+	return _G["ContainerFrame"..container]:GetID()
 end
 
 function CT_CCFrame_ToggleEditBox(self)
-	if getglobal(self:GetParent():GetName().."EBFrame"):IsVisible() ~= 1 then
-		getglobal(self:GetParent():GetName().."EBFrame"):Show()
+	if _G[self:GetParent():GetName().."EBFrame"]:IsVisible() ~= 1 then
+		_G[self:GetParent():GetName().."EBFrame"]:Show()
 	else
-		CT_SaveEditBox(getglobal(self:GetParent():GetName().."EBFrameEditBox"), self:GetParent():GetID() + 1)
-		getglobal(self:GetParent():GetName().."EBFrame"):Hide()
+		CT_SaveEditBox(_G[self:GetParent():GetName().."EBFrameEditBox"], self:GetParent():GetID() + 1)
+		_G[self:GetParent():GetName().."EBFrame"]:Hide()
 	end
 end
 
@@ -66,9 +72,9 @@ function CT_SaveEditBox(box, id)
 	box:SetText("")
 	CT_BagModOptions[CT_GetBagID(id)] = text
 	if text == "" then
-		getglobal("ContainerFrame"..id.."Name"):SetText(GetBagName(CT_GetBagID(id)))
+		_G["ContainerFrame"..id.."Name"]:SetText(GetBagName(CT_GetBagID(id)))
 	else
-		getglobal("ContainerFrame"..id.."Name"):SetText(text)
+		_G["ContainerFrame"..id.."Name"]:SetText(text)
 	end
 end
 
@@ -78,9 +84,9 @@ end
 
 function CT_CCEditBox_OnEscapePressed(self)
 	if CT_BagModOptions[CT_GetBagID(self:GetParent():GetParent():GetID() + 1)] and string.len(CT_BagModOptions[CT_GetBagID(self:GetParent():GetParent():GetID() + 1)]) > 0 and CT_BagModOptions[CT_GetBagID(self:GetParent():GetParent():GetID() + 1)] ~= GetBagName(CT_GetBagID(self:GetParent():GetParent():GetID() + 1)) then
-		getglobal("ContainerFrame"..self:GetParent():GetParent():GetID() + 1 .."Name"):SetText(CT_BagModOptions[CT_GetBagID(self:GetParent():GetParent():GetID() + 1)])
+		_G["ContainerFrame"..self:GetParent():GetParent():GetID() + 1 .."Name"]:SetText(CT_BagModOptions[CT_GetBagID(self:GetParent():GetParent():GetID() + 1)])
 	else
-		getglobal("ContainerFrame"..self:GetParent():GetParent():GetID() + 1 .."Name"):SetText(GetBagName(CT_GetBagID(self:GetParent():GetParent():GetID() + 1)))
+		_G["ContainerFrame"..self:GetParent():GetParent():GetID() + 1 .."Name"]:SetText(GetBagName(CT_GetBagID(self:GetParent():GetParent():GetID() + 1)))
 	end
 	self:SetText("")
 	if self:GetParent():IsVisible() == 1 then
@@ -90,9 +96,9 @@ end
 
 function CT_CCFrame_OnShow(self)
 	if CT_BagModOptions[CT_GetBagID(self:GetParent():GetID( ) +1)] and string.len(CT_BagModOptions[CT_GetBagID(self:GetParent():GetID() + 1)]) > 0 then
-		getglobal("ContainerFrame"..self:GetParent():GetID() + 1 .."Name"):SetText(CT_BagModOptions[CT_GetBagID(self:GetParent():GetID() + 1)])
+		_G["ContainerFrame"..self:GetParent():GetID() + 1 .."Name"]:SetText(CT_BagModOptions[CT_GetBagID(self:GetParent():GetID() + 1)])
 	else
-		getglobal("ContainerFrame"..self:GetParent():GetID() + 1 .."Name"):SetText(GetBagName(CT_GetBagID(self:GetParent():GetID() + 1)))
+		_G["ContainerFrame"..self:GetParent():GetID() + 1 .."Name"]:SetText(GetBagName(CT_GetBagID(self:GetParent():GetID() + 1)))
 	end
 end
 
@@ -111,7 +117,7 @@ function CT_CCSlotButton_OnClick(self)
 	local container
 	local button
 	if self:GetID() >= 1 then
-		button = getglobal("CharacterBag"..self:GetID() - 1 .."Slot")
+		button = _G["CharacterBag"..self:GetID() - 1 .."Slot"]
 		local id = button:GetID()
 		local translatedID = id - CharacterBag0Slot:GetID() + 1
 		local hadItem = PutItemInBag(id)
@@ -119,7 +125,7 @@ function CT_CCSlotButton_OnClick(self)
 			ToggleBag(translatedID)
 		end
 		for i = 1, NUM_CONTAINER_FRAMES, 1 do
-			local frame = getglobal("ContainerFrame"..i)
+			local frame = _G["ContainerFrame"..i]
 			if frame:GetID() == translatedID then
 				container = i
 				if frame:IsVisible() then
@@ -133,7 +139,7 @@ function CT_CCSlotButton_OnClick(self)
 		if not PutItemInBackpack() then
 			ToggleBackpack()
 			for i = 1, NUM_CONTAINER_FRAMES, 1 do
-				local frame = getglobal("ContainerFrame"..i)
+				local frame = _G["ContainerFrame"..i]
 				if frame:GetID() == 0 then
 					container = i
 					if frame:IsVisible() then
@@ -142,16 +148,16 @@ function CT_CCSlotButton_OnClick(self)
 					end
 				end
 			end
-			getglobal("MainMenuBarBackpackButton"):SetChecked(isVisible)
+			_G["MainMenuBarBackpackButton"]:SetChecked(isVisible)
 		end
 	end
 	local newCID = container
 	for z = 0, 4, 1 do
-		local glb = getglobal("CT_CCB"..z.."Button")
+		local glb = _G["CT_CCB"..z.."Button"]
 		if glb and glb.CID == newCID then
 			glb.CID = self.CID
 			self.CID = newCID
-			getglobal("ContainerFrame" .. glb.CID):SetID(glb:GetID())
+			_G["ContainerFrame" .. glb.CID]:SetID(glb:GetID())
 		end
 	end
 end
@@ -159,15 +165,15 @@ end
 function CT_CCSlotButton_OnDrag(self)
 	local button
 	if self:GetID() ~= 0 then
-		button = getglobal("CharacterBag"..self:GetID() - 1 .."Slot")
+		button = _G["CharacterBag"..self:GetID() - 1 .."Slot"]
 	else
-		button = getglobal("MainMenuBarBackpackButton")
+		button = _G["MainMenuBarBackpackButton"]
 	end
 	local translatedID = button:GetID() - CharacterBag0Slot:GetID() + 1
 	PickupBagFromSlot(button:GetID())
 	local isVisible = 0
 	for i = 1, NUM_CONTAINER_FRAMES, 1 do
-		local frame = getglobal("ContainerFrame"..i)
+		local frame = _G["ContainerFrame"..i]
 		if (frame:GetID() == translatedID) and frame:IsVisible() then
 			isVisible = 1
 			break
@@ -193,7 +199,7 @@ function CT_CCFrame_OnEnter(self)
 		end
 
 	elseif bagid and bagid > 0 and ContainerIDToInventoryID(bagid) and GameTooltip:SetInventoryItem("player", ContainerIDToInventoryID(bagid)) then
-		getglobal("GameTooltipTextLeft1"):SetText(settext)
+		_G["GameTooltipTextLeft1"]:SetText(settext)
 		local binding = GetBindingKey("TOGGLEBAG"..(5 - bagid))
 		if binding then
 			GameTooltip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..binding..")"..FONT_COLOR_CODE_CLOSE)
@@ -217,11 +223,11 @@ function CT_CCButton_OnEnter(self)
 			GameTooltip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..GetBindingKey("TOGGLEBACKPACK")..")"..FONT_COLOR_CODE_CLOSE)
 		end
 	elseif GameTooltip:SetInventoryItem("player", ContainerIDToInventoryID(bagid)) then
-		getglobal("GameTooltipTextLeft1"):SetText(settext)
+		_G["GameTooltipTextLeft1"]:SetText(settext)
 		local binding = GetBindingKey("TOGGLEBAG"..(5 - bagid))
 		if binding then
 			GameTooltip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..binding..")"..FONT_COLOR_CODE_CLOSE)
-		end 
+		end
 	else
 		GameTooltip:SetText(TEXT(EQUIP_CONTAINER), 1.0, 1.0, 1.0)
 	end
